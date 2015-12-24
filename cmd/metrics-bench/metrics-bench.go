@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/rcrowley/go-metrics"
+	"github.com/carbin-gun/awesome-metrics"
 	"time"
 )
 
