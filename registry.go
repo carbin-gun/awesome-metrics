@@ -45,6 +45,8 @@ type Registry interface {
 
 	// Unregister all metrics.  (Mostly for testing.)
 	UnregisterAll()
+	//get the universal prefix of all the metrics
+	Prefix() string
 }
 
 
@@ -53,9 +55,9 @@ type StandardRegistry struct {
 	metrics concurrent.ConcurrentMap
 }
 
+//Registry creation with specifying the universal prefix of all the metrics-keys
 func NewPrefixRegistry(prefix string){
 	return &StandardRegistry{Prefix:prefix,metrics: concurrent.NewConcurrentMap()}
-
 }
 
 // Create a new registry.
@@ -118,6 +120,13 @@ func (r *StandardRegistry) UnregisterAll() {
 	}
 }
 
+//get the universal prefix of all the metrics
+func (r *StandardRegistry) Prefix() string {
+	return r.Prefix
+}
+
+
+
 func (r *StandardRegistry) register(name string, i interface{}) error {
 	if _, ok := r.metrics.Get(name); ok {
 		return DuplicateMetric(name)
@@ -137,30 +146,4 @@ func (r *StandardRegistry) registered() map[string]interface{} {
 	return metrics
 }
 
-
-
-//helper function for default usage
-var DefaultRegistry Registry = NewRegistry()
-
-// Call the given function for each registered metric.
-func Each(f func(string, interface{})) {
-	DefaultRegistry.Each(f)
-}
-
-// Get the metric by the given name or nil if none is registered.
-func Get(name string) interface{} {
-	return DefaultRegistry.Get(name)
-}
-
-// Gets an existing metric or creates and registers a new one. Threadsafe
-// alternative to calling Get and Register on failure.
-func GetOrRegister(name string, i interface{}) interface{} {
-	return DefaultRegistry.GetOrRegister(name, i)
-}
-
-// Register the given metric under the given name.  Returns a DuplicateMetric
-// if a metric by the given name is already registered.
-func Register(name string, i interface{}) error {
-	return DefaultRegistry.Register(name, i)
-}
-
+var DefaultRegistry = NewRegistry()
