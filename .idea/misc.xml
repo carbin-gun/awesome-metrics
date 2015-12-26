@@ -8,13 +8,6 @@
     <option name="pathToConfigFileJava" value="$USER_HOME$/Softs/code_formatter/meican.xml" />
     <option name="selectedJavaProfile" value="Meican" />
   </component>
-  <component name="MavenImportPreferences">
-    <option name="generalSettings">
-      <MavenGeneralSettings>
-        <option name="mavenHome" value="Bundled (Maven 3)" />
-      </MavenGeneralSettings>
-    </option>
-  </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
     <entry key="Project Default">
       <profile-state>
