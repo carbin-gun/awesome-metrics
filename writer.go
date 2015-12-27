@@ -54,13 +54,12 @@ func WriteOnce(r Registry, w io.Writer) {
 			fmt.Fprintf(w, "  99%%:         %12.2f\n", ps[3])
 			fmt.Fprintf(w, "  99.9%%:       %12.2f\n", ps[4])
 		case Meter:
-			m := metric.Snapshot()
 			fmt.Fprintf(w, "meter %s\n", namedMetric.name)
-			fmt.Fprintf(w, "  count:       %9d\n", m.Count())
-			fmt.Fprintf(w, "  1-min rate:  %12.2f\n", m.Rate1())
-			fmt.Fprintf(w, "  5-min rate:  %12.2f\n", m.Rate5())
-			fmt.Fprintf(w, "  15-min rate: %12.2f\n", m.Rate15())
-			fmt.Fprintf(w, "  mean rate:   %12.2f\n", m.RateMean())
+			fmt.Fprintf(w, "  count:       %9d\n", metric.Count())
+			fmt.Fprintf(w, "  1-min rate:  %12.2f\n", metric.Rate1())
+			fmt.Fprintf(w, "  5-min rate:  %12.2f\n", metric.Rate5())
+			fmt.Fprintf(w, "  15-min rate: %12.2f\n", metric.Rate15())
+			fmt.Fprintf(w, "  mean rate:   %12.2f\n", metric.RateMean())
 		case Timer:
 			t := metric.Snapshot()
 			ps := t.Percentiles([]float64{0.5, 0.75, 0.95, 0.99, 0.999})
@@ -75,10 +74,10 @@ func WriteOnce(r Registry, w io.Writer) {
 			fmt.Fprintf(w, "  95%%:         %12.2f\n", ps[2])
 			fmt.Fprintf(w, "  99%%:         %12.2f\n", ps[3])
 			fmt.Fprintf(w, "  99.9%%:       %12.2f\n", ps[4])
-			fmt.Fprintf(w, "  1-min rate:  %12.2f\n", t.Rate1())
-			fmt.Fprintf(w, "  5-min rate:  %12.2f\n", t.Rate5())
-			fmt.Fprintf(w, "  15-min rate: %12.2f\n", t.Rate15())
-			fmt.Fprintf(w, "  mean rate:   %12.2f\n", t.RateMean())
+			fmt.Fprintf(w, "  1-min rate:  %12.2f\n", metric.Rate1())
+			fmt.Fprintf(w, "  5-min rate:  %12.2f\n", metric.Rate5())
+			fmt.Fprintf(w, "  15-min rate: %12.2f\n", metric.Rate15())
+			fmt.Fprintf(w, "  mean rate:   %12.2f\n", metric.RateMean())
 		}
 	}
 }
