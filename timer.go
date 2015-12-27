@@ -17,7 +17,7 @@ type Timer interface {
 	Rate5() float64
 	Rate15() float64
 	RateMean() float64
-	Snapshot() Timer
+	Snapshot() Histogram
 	StdDev() float64
 	Sum() int64
 	Time(func())
@@ -107,7 +107,7 @@ func (NilTimer) Rate15() float64 { return 0.0 }
 func (NilTimer) RateMean() float64 { return 0.0 }
 
 // Snapshot is a no-op.
-func (NilTimer) Snapshot() Timer { return NilTimer{} }
+func (NilTimer) Snapshot() Histogram { return &NilHistogram{} }
 
 // StdDev is a no-op.
 func (NilTimer) StdDev() float64 { return 0.0 }
@@ -187,13 +187,11 @@ func (t *StandardTimer) RateMean() float64 {
 }
 
 // Snapshot returns a read-only copy of the timer.
-func (t *StandardTimer) Snapshot() Timer {
+func (t *StandardTimer) Snapshot() Histogram {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
-	return &TimerSnapshot{
-		histogram: t.histogram.Snapshot().(*HistogramSnapshot),
-		meter:     t.meter.Snapshot().(*MeterSnapshot),
-	}
+	return t.histogram.Snapshot().(*HistogramSnapshot)
+
 }
 
 // StdDev returns the standard deviation of the values in the sample.
@@ -237,7 +235,6 @@ func (t *StandardTimer) Variance() float64 {
 // TimerSnapshot is a read-only copy of another Timer.
 type TimerSnapshot struct {
 	histogram *HistogramSnapshot
-	meter     *MeterSnapshot
 }
 
 // Count returns the number of events recorded at the time the snapshot was
@@ -264,22 +261,6 @@ func (t *TimerSnapshot) Percentile(p float64) float64 {
 func (t *TimerSnapshot) Percentiles(ps []float64) []float64 {
 	return t.histogram.Percentiles(ps)
 }
-
-// Rate1 returns the one-minute moving average rate of events per second at the
-// time the snapshot was taken.
-func (t *TimerSnapshot) Rate1() float64 { return t.meter.Rate1() }
-
-// Rate5 returns the five-minute moving average rate of events per second at
-// the time the snapshot was taken.
-func (t *TimerSnapshot) Rate5() float64 { return t.meter.Rate5() }
-
-// Rate15 returns the fifteen-minute moving average rate of events per second
-// at the time the snapshot was taken.
-func (t *TimerSnapshot) Rate15() float64 { return t.meter.Rate15() }
-
-// RateMean returns the meter's mean rate of events per second at the time the
-// snapshot was taken.
-func (t *TimerSnapshot) RateMean() float64 { return t.meter.RateMean() }
 
 // Snapshot returns the snapshot.
 func (t *TimerSnapshot) Snapshot() Timer { return t }

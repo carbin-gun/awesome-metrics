@@ -69,12 +69,11 @@ func (r *Reporter) ReportOnce() error{
 				fmt.Fprintf(w, "%s%s.%s-percentile %.2f %d\n", keyPrefix, name, key, ps[psIdx], now)
 			}
 		case metrics.Meter:
-			m := metric.Snapshot()
-			fmt.Fprintf(w, "%s%s.count %d %d\n", keyPrefix, name, m.Count(), now)
-			fmt.Fprintf(w, "%s%s.one-minute %.2f %d\n", keyPrefix, name, m.Rate1(), now)
-			fmt.Fprintf(w, "%s%s.five-minute %.2f %d\n", keyPrefix, name, m.Rate5(), now)
-			fmt.Fprintf(w, "%s%s.fifteen-minute %.2f %d\n", keyPrefix, name, m.Rate15(), now)
-			fmt.Fprintf(w, "%s%s.mean %.2f %d\n", keyPrefix, name, m.RateMean(), now)
+			fmt.Fprintf(w, "%s%s.count %d %d\n", keyPrefix, name, metric.Count(), now)
+			fmt.Fprintf(w, "%s%s.one-minute %.2f %d\n", keyPrefix, name, metric.Rate1(), now)
+			fmt.Fprintf(w, "%s%s.five-minute %.2f %d\n", keyPrefix, name, metric.Rate5(), now)
+			fmt.Fprintf(w, "%s%s.fifteen-minute %.2f %d\n", keyPrefix, name, metric.Rate15(), now)
+			fmt.Fprintf(w, "%s%s.mean %.2f %d\n", keyPrefix, name, metric.RateMean(), now)
 		case metrics.Timer:
 			t := metric.Snapshot()
 			ps := t.Percentiles(r.Percentiles)
@@ -87,10 +86,10 @@ func (r *Reporter) ReportOnce() error{
 				key := strings.Replace(strconv.FormatFloat(psKey*100.0, 'f', -1, 64), ".", "", 1)
 				fmt.Fprintf(w, "%s%s.%s-percentile %.2f %d\n", keyPrefix, name, key, ps[psIdx]/du, now)
 			}
-			fmt.Fprintf(w, "%s%s.one-minute %.2f %d\n", keyPrefix, name, t.Rate1(), now)
-			fmt.Fprintf(w, "%s%s.five-minute %.2f %d\n", keyPrefix, name, t.Rate5(), now)
-			fmt.Fprintf(w, "%s%s.fifteen-minute %.2f %d\n", keyPrefix, name, t.Rate15(), now)
-			fmt.Fprintf(w, "%s%s.mean-rate %.2f %d\n", keyPrefix, name, t.RateMean(), now)
+			fmt.Fprintf(w, "%s%s.one-minute %.2f %d\n", keyPrefix, name, metric.Rate1(), now)
+			fmt.Fprintf(w, "%s%s.five-minute %.2f %d\n", keyPrefix, name, metric.Rate5(), now)
+			fmt.Fprintf(w, "%s%s.fifteen-minute %.2f %d\n", keyPrefix, name, metric.Rate15(), now)
+			fmt.Fprintf(w, "%s%s.mean-rate %.2f %d\n", keyPrefix, name, metric.RateMean(), now)
 		}
 		w.Flush()
 	})

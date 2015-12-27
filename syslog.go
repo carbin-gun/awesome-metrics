@@ -41,15 +41,14 @@ func Syslog(r Registry, d time.Duration, w *syslog.Writer) {
 					ps[4],
 				))
 			case Meter:
-				m := metric.Snapshot()
 				w.Info(fmt.Sprintf(
 					"meter %s: count: %d 1-min: %.2f 5-min: %.2f 15-min: %.2f mean: %.2f",
 					name,
-					m.Count(),
-					m.Rate1(),
-					m.Rate5(),
-					m.Rate15(),
-					m.RateMean(),
+					metric.Count(),
+					metric.Rate1(),
+					metric.Rate5(),
+					metric.Rate15(),
+					metric.RateMean(),
 				))
 			case Timer:
 				t := metric.Snapshot()
@@ -67,10 +66,10 @@ func Syslog(r Registry, d time.Duration, w *syslog.Writer) {
 					ps[2],
 					ps[3],
 					ps[4],
-					t.Rate1(),
-					t.Rate5(),
-					t.Rate15(),
-					t.RateMean(),
+					metric.Rate1(),
+					metric.Rate5(),
+					metric.Rate15(),
+					metric.RateMean(),
 				))
 			}
 		})

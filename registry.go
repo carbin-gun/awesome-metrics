@@ -3,17 +3,17 @@ package metrics
 import (
 	"fmt"
 	"reflect"
-	"sync"
+
 	"github.com/fanliao/go-concurrentMap"
 )
 
 // DuplicateMetric is the error returned by Registry.Register when a metric
 // already exists.  If you mean to Register that metric you must first
 // Unregister the existing metric.
-type DuplicateMetric string
+type MetricError string
 
-func (err DuplicateMetric) Error() string {
-	return fmt.Sprintf("duplicate metric: %s", string(err))
+func (err MetricError) Error() string {
+	return fmt.Sprintf(" metric error: %s", string(err))
 }
 
 // A Registry holds references to a set of metrics by name and can iterate
@@ -38,7 +38,7 @@ type Registry interface {
 	Register(string, interface{}) error
 
 	// Run all registered healthchecks.
-	RunHealthchecks()
+	RunHealthChecks()
 
 	// Unregister the metric with the given name.
 	Unregister(string)
@@ -49,15 +49,14 @@ type Registry interface {
 	Prefix() string
 }
 
-
 type StandardRegistry struct {
-	Prefix string
-	metrics concurrent.ConcurrentMap
+	universalPrefix string
+	metrics         *concurrent.ConcurrentMap
 }
 
 //Registry creation with specifying the universal prefix of all the metrics-keys
-func NewPrefixRegistry(prefix string){
-	return &StandardRegistry{Prefix:prefix,metrics: concurrent.NewConcurrentMap()}
+func NewPrefixRegistry(prefix string) Registry {
+	return &StandardRegistry{universalPrefix: prefix, metrics: concurrent.NewConcurrentMap()}
 }
 
 // Create a new registry.
@@ -74,7 +73,8 @@ func (r *StandardRegistry) Each(f func(string, interface{})) {
 
 // Get the metric by the given name or nil if none is registered.
 func (r *StandardRegistry) Get(name string) interface{} {
-	return r.metrics.Get(name)
+	val, _ := r.metrics.Get(name)
+	return val
 }
 
 // Gets an existing metric or creates and registers a new one. Threadsafe
@@ -82,8 +82,8 @@ func (r *StandardRegistry) Get(name string) interface{} {
 // The interface can be the metric to register if not found in registry,
 // or a function returning the metric for lazy instantiation.
 func (r *StandardRegistry) GetOrRegister(name string, i interface{}) interface{} {
-	val:=r.Get(name)
-	if val!=nil{
+	val := r.Get(name)
+	if val != nil {
 		return val
 	}
 	if v := reflect.ValueOf(i); v.Kind() == reflect.Func {
@@ -100,12 +100,18 @@ func (r *StandardRegistry) Register(name string, i interface{}) error {
 }
 
 // Run all registered healthchecks.
-func (r *StandardRegistry) RunHealthchecks() {
-	for _, i := range r.metrics {
-		if h, ok := i.(Healthcheck); ok {
+func (r *StandardRegistry) RunHealthChecks() {
+	itr := r.metrics.Iterator()
+	for {
+		_, v, ok := itr.Next()
+		if !ok {
+			break
+		}
+		if h, ok := v.(Healthcheck); ok {
 			h.Check()
 		}
 	}
+
 }
 
 // Unregister the metric with the given name.
@@ -115,33 +121,33 @@ func (r *StandardRegistry) Unregister(name string) {
 
 // Unregister all metrics.  (Mostly for testing.)
 func (r *StandardRegistry) UnregisterAll() {
-	for name, _ := range r.metrics {
+	all := r.metrics.ToSlice()
+	for name, _ := range all {
 		r.metrics.Remove(name)
 	}
 }
 
 //get the universal prefix of all the metrics
 func (r *StandardRegistry) Prefix() string {
-	return r.Prefix
+	return r.universalPrefix
 }
 
-
-
 func (r *StandardRegistry) register(name string, i interface{}) error {
-	if _, ok := r.metrics.Get(name); ok {
-		return DuplicateMetric(name)
+	if val, err := r.metrics.Get(name); err != nil || val != nil {
+		return MetricError("register error for name:" + name)
 	}
 	switch i.(type) {
 	case Counter, Gauge, GaugeFloat64, Healthcheck, Histogram, Meter, Timer:
-		r.metrics.Put(name,i)
+		r.metrics.Put(name, i)
 	}
 	return nil
 }
 
 func (r *StandardRegistry) registered() map[string]interface{} {
-	metrics := make(map[string]interface{}, len(r.metrics))
-	for name, i := range r.metrics {
-		metrics[name] = i
+	metrics := make(map[string]interface{}, r.metrics.Size())
+	for _, entry := range r.metrics.ToSlice() {
+		keyString := entry.Key().(string)
+		metrics[keyString] = entry.Value()
 	}
 	return metrics
 }

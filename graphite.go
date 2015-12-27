@@ -84,12 +84,11 @@ func graphite(c *GraphiteConfig) error {
 				fmt.Fprintf(w, "%s.%s.%s-percentile %.2f %d\n", c.Prefix, name, key, ps[psIdx], now)
 			}
 		case Meter:
-			m := metric.Snapshot()
-			fmt.Fprintf(w, "%s.%s.count %d %d\n", c.Prefix, name, m.Count(), now)
-			fmt.Fprintf(w, "%s.%s.one-minute %.2f %d\n", c.Prefix, name, m.Rate1(), now)
-			fmt.Fprintf(w, "%s.%s.five-minute %.2f %d\n", c.Prefix, name, m.Rate5(), now)
-			fmt.Fprintf(w, "%s.%s.fifteen-minute %.2f %d\n", c.Prefix, name, m.Rate15(), now)
-			fmt.Fprintf(w, "%s.%s.mean %.2f %d\n", c.Prefix, name, m.RateMean(), now)
+			fmt.Fprintf(w, "%s.%s.count %d %d\n", c.Prefix, name, metric.Count(), now)
+			fmt.Fprintf(w, "%s.%s.one-minute %.2f %d\n", c.Prefix, name, metric.Rate1(), now)
+			fmt.Fprintf(w, "%s.%s.five-minute %.2f %d\n", c.Prefix, name, metric.Rate5(), now)
+			fmt.Fprintf(w, "%s.%s.fifteen-minute %.2f %d\n", c.Prefix, name, metric.Rate15(), now)
+			fmt.Fprintf(w, "%s.%s.mean %.2f %d\n", c.Prefix, name, metric.RateMean(), now)
 		case Timer:
 			t := metric.Snapshot()
 			ps := t.Percentiles(c.Percentiles)
@@ -102,10 +101,10 @@ func graphite(c *GraphiteConfig) error {
 				key := strings.Replace(strconv.FormatFloat(psKey*100.0, 'f', -1, 64), ".", "", 1)
 				fmt.Fprintf(w, "%s.%s.%s-percentile %.2f %d\n", c.Prefix, name, key, ps[psIdx], now)
 			}
-			fmt.Fprintf(w, "%s.%s.one-minute %.2f %d\n", c.Prefix, name, t.Rate1(), now)
-			fmt.Fprintf(w, "%s.%s.five-minute %.2f %d\n", c.Prefix, name, t.Rate5(), now)
-			fmt.Fprintf(w, "%s.%s.fifteen-minute %.2f %d\n", c.Prefix, name, t.Rate15(), now)
-			fmt.Fprintf(w, "%s.%s.mean-rate %.2f %d\n", c.Prefix, name, t.RateMean(), now)
+			fmt.Fprintf(w, "%s.%s.one-minute %.2f %d\n", c.Prefix, name, metric.Rate1(), now)
+			fmt.Fprintf(w, "%s.%s.five-minute %.2f %d\n", c.Prefix, name, metric.Rate5(), now)
+			fmt.Fprintf(w, "%s.%s.fifteen-minute %.2f %d\n", c.Prefix, name, metric.Rate15(), now)
+			fmt.Fprintf(w, "%s.%s.mean-rate %.2f %d\n", c.Prefix, name, metric.RateMean(), now)
 		}
 		w.Flush()
 	})
