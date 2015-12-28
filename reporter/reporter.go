@@ -77,7 +77,7 @@ func (r *Reporter) ReportOnce() error{
 		case metrics.Timer:
 			t := metric.Snapshot()
 			ps := t.Percentiles(r.Percentiles)
-			fmt.Fprintf(w, "%s%s.count %d %d\n", keyPrefix, name, t.Count(), now)
+			fmt.Fprintf(w, "%s%s.count %d %d\n", keyPrefix, name, metric.Count(), now)
 			fmt.Fprintf(w, "%s%s.min %d %d\n", keyPrefix, name, t.Min()/int64(du), now)
 			fmt.Fprintf(w, "%s%s.max %d %d\n", keyPrefix, name, t.Max()/int64(du), now)
 			fmt.Fprintf(w, "%s%s.mean %.2f %d\n", keyPrefix, name, t.Mean()/du, now)

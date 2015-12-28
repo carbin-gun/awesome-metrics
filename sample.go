@@ -37,7 +37,7 @@ type Sample interface {
 type ExpDecaySample struct {
 	alpha         float64
 	count         int64
-	mutex         sync.Mutex
+	mutex         sync.RWMutex
 	reservoirSize int
 	t0, t1        time.Time
 	values        *expDecaySampleHeap
@@ -72,8 +72,8 @@ func (s *ExpDecaySample) Clear() {
 // Count returns the number of samples recorded, which may exceed the
 // reservoir size.
 func (s *ExpDecaySample) Count() int64 {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	return s.count
 }
 
@@ -107,15 +107,15 @@ func (s *ExpDecaySample) Percentiles(ps []float64) []float64 {
 
 // Size returns the size of the sample, which is at most the reservoir size.
 func (s *ExpDecaySample) Size() int {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	return s.values.Size()
 }
 
 // Snapshot returns a read-only copy of the sample.
 func (s *ExpDecaySample) Snapshot() Sample {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	vals := s.values.Values()
 	values := make([]int64, len(vals))
 	for i, v := range vals {
@@ -144,8 +144,8 @@ func (s *ExpDecaySample) Update(v int64) {
 
 // Values returns a copy of the values in the sample.
 func (s *ExpDecaySample) Values() []int64 {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	vals := s.values.Values()
 	values := make([]int64, len(vals))
 	for i, v := range vals {
@@ -392,7 +392,7 @@ func SampleVariance(values []int64) float64 {
 // <http://www.cs.umd.edu/~samir/498/vitter.pdf>
 type UniformSample struct {
 	count         int64
-	mutex         sync.Mutex
+	mutex         sync.RWMutex
 	reservoirSize int
 	values        []int64
 }
@@ -420,60 +420,60 @@ func (s *UniformSample) Clear() {
 // Count returns the number of samples recorded, which may exceed the
 // reservoir size.
 func (s *UniformSample) Count() int64 {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	return s.count
 }
 
 // Max returns the maximum value in the sample, which may not be the maximum
 // value ever to be part of the sample.
 func (s *UniformSample) Max() int64 {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	return SampleMax(s.values)
 }
 
 // Mean returns the mean of the values in the sample.
 func (s *UniformSample) Mean() float64 {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	return SampleMean(s.values)
 }
 
 // Min returns the minimum value in the sample, which may not be the minimum
 // value ever to be part of the sample.
 func (s *UniformSample) Min() int64 {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	return SampleMin(s.values)
 }
 
 // Percentile returns an arbitrary percentile of values in the sample.
 func (s *UniformSample) Percentile(p float64) float64 {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	return SamplePercentile(s.values, p)
 }
 
 // Percentiles returns a slice of arbitrary percentiles of values in the
 // sample.
 func (s *UniformSample) Percentiles(ps []float64) []float64 {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	return SamplePercentiles(s.values, ps)
 }
 
 // Size returns the size of the sample, which is at most the reservoir size.
 func (s *UniformSample) Size() int {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	return len(s.values)
 }
 
 // Snapshot returns a read-only copy of the sample.
 func (s *UniformSample) Snapshot() Sample {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	values := make([]int64, len(s.values))
 	copy(values, s.values)
 	return &SampleSnapshot{
@@ -484,15 +484,15 @@ func (s *UniformSample) Snapshot() Sample {
 
 // StdDev returns the standard deviation of the values in the sample.
 func (s *UniformSample) StdDev() float64 {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	return SampleStdDev(s.values)
 }
 
 // Sum returns the sum of the values in the sample.
 func (s *UniformSample) Sum() int64 {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	return SampleSum(s.values)
 }
 
@@ -513,8 +513,8 @@ func (s *UniformSample) Update(v int64) {
 
 // Values returns a copy of the values in the sample.
 func (s *UniformSample) Values() []int64 {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	values := make([]int64, len(s.values))
 	copy(values, s.values)
 	return values
@@ -522,8 +522,8 @@ func (s *UniformSample) Values() []int64 {
 
 // Variance returns the variance of the values in the sample.
 func (s *UniformSample) Variance() float64 {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	return SampleVariance(s.values)
 }
 

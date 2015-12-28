@@ -1,5 +1,7 @@
 package metrics
 
+import "sync/atomic"
+
 // Histograms calculate distribution statistics from a series of int64 values.
 type Histogram interface {
 	Clear()
@@ -151,6 +153,7 @@ func (NilHistogram) Variance() float64 { return 0.0 }
 // StandardHistogram is the standard implementation of a Histogram and uses a
 // Sample to bound its memory use.
 type StandardHistogram struct {
+	count  int64
 	sample Sample
 }
 
@@ -159,7 +162,7 @@ func (h *StandardHistogram) Clear() { h.sample.Clear() }
 
 // Count returns the number of samples recorded since the histogram was last
 // cleared.
-func (h *StandardHistogram) Count() int64 { return h.sample.Count() }
+func (h *StandardHistogram) Count() int64 { return atomic.LoadInt64(&h.count) }
 
 // Max returns the maximum value in the sample.
 func (h *StandardHistogram) Max() int64 { return h.sample.Max() }
@@ -196,7 +199,10 @@ func (h *StandardHistogram) StdDev() float64 { return h.sample.StdDev() }
 func (h *StandardHistogram) Sum() int64 { return h.sample.Sum() }
 
 // Update samples a new value.
-func (h *StandardHistogram) Update(v int64) { h.sample.Update(v) }
+func (h *StandardHistogram) Update(v int64) {
+	atomic.AddInt64(&h.count, 1)
+	h.sample.Update(v)
+}
 
 // Variance returns the variance of the values in the sample.
 func (h *StandardHistogram) Variance() float64 { return h.sample.Variance() }
