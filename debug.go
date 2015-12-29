@@ -10,7 +10,7 @@ var (
 		GCStats struct {
 			LastGC Gauge
 			NumGC  Gauge
-			Pause  Histogram
+			Pause  *Histogram
 			//PauseQuantiles Histogram
 			PauseTotal Gauge
 		}

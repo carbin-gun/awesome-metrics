@@ -27,8 +27,8 @@ func (r *StandardRegistry) MarshalJSON() ([]byte, error) {
 			}
 		case Histogram:
 			h := metric.Snapshot()
-			ps := h.Percentiles([]float64{0.5, 0.75, 0.95, 0.99, 0.999})
-			values["count"] = h.Count()
+			ps := h.Percentiles()
+			values["count"] = metric.Count()
 			values["min"] = h.Min()
 			values["max"] = h.Max()
 			values["mean"] = h.Mean()
@@ -46,8 +46,8 @@ func (r *StandardRegistry) MarshalJSON() ([]byte, error) {
 			values["mean.rate"] = metric.RateMean()
 		case Timer:
 			t := metric.Snapshot()
-			ps := t.Percentiles([]float64{0.5, 0.75, 0.95, 0.99, 0.999})
-			values["count"] = t.Count()
+			ps := t.Percentiles()
+			values["count"] = metric.Count()
 			values["min"] = t.Min()
 			values["max"] = t.Max()
 			values["mean"] = t.Mean()

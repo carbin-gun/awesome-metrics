@@ -17,7 +17,7 @@ type Timer interface {
 	Rate5() float64
 	Rate15() float64
 	RateMean() float64
-	Snapshot() Histogram
+	Snapshot() Snapshot
 	StdDev() float64
 	Sum() int64
 	Time(func())
@@ -59,73 +59,11 @@ func NewRegisteredTimer(name string, r Registry) Timer {
 // NewTimer constructs a new StandardTimer using an exponentially-decaying
 // sample with the same reservoir size and alpha as UNIX load averages.
 func NewTimer() Timer {
-	if UseNilMetrics {
-		return NilTimer{}
-	}
 	return &StandardTimer{
-		histogram: NewHistogram(NewExpDecaySample(1028, 0.015)),
+		histogram: NewHistogram(NewExpDecayReservoir(1028, 0.015)),
 		meter:     NewMeter(),
 	}
 }
-
-// NilTimer is a no-op Timer.
-type NilTimer struct {
-	h Histogram
-	m Meter
-}
-
-// Count is a no-op.
-func (NilTimer) Count() int64 { return 0 }
-
-// Max is a no-op.
-func (NilTimer) Max() int64 { return 0 }
-
-// Mean is a no-op.
-func (NilTimer) Mean() float64 { return 0.0 }
-
-// Min is a no-op.
-func (NilTimer) Min() int64 { return 0 }
-
-// Percentile is a no-op.
-func (NilTimer) Percentile(p float64) float64 { return 0.0 }
-
-// Percentiles is a no-op.
-func (NilTimer) Percentiles(ps []float64) []float64 {
-	return make([]float64, len(ps))
-}
-
-// Rate1 is a no-op.
-func (NilTimer) Rate1() float64 { return 0.0 }
-
-// Rate5 is a no-op.
-func (NilTimer) Rate5() float64 { return 0.0 }
-
-// Rate15 is a no-op.
-func (NilTimer) Rate15() float64 { return 0.0 }
-
-// RateMean is a no-op.
-func (NilTimer) RateMean() float64 { return 0.0 }
-
-// Snapshot is a no-op.
-func (NilTimer) Snapshot() Histogram { return &NilHistogram{} }
-
-// StdDev is a no-op.
-func (NilTimer) StdDev() float64 { return 0.0 }
-
-// Sum is a no-op.
-func (NilTimer) Sum() int64 { return 0 }
-
-// Time is a no-op.
-func (NilTimer) Time(func()) {}
-
-// Update is a no-op.
-func (NilTimer) Update(time.Duration) {}
-
-// UpdateSince is a no-op.
-func (NilTimer) UpdateSince(time.Time) {}
-
-// Variance is a no-op.
-func (NilTimer) Variance() float64 { return 0.0 }
 
 // StandardTimer is the standard implementation of a Timer and uses a Histogram
 // and Meter.

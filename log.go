@@ -26,9 +26,9 @@ func Log(r Registry, d time.Duration, l *log.Logger) {
 				l.Printf("  error:       %v\n", metric.Error())
 			case Histogram:
 				h := metric.Snapshot()
-				ps := h.Percentiles([]float64{0.5, 0.75, 0.95, 0.99, 0.999})
+				ps := h.Percentiles()
 				l.Printf("histogram %s\n", name)
-				l.Printf("  count:       %9d\n", h.Count())
+				l.Printf("  count:       %9d\n", metric.Count())
 				l.Printf("  min:         %9d\n", h.Min())
 				l.Printf("  max:         %9d\n", h.Max())
 				l.Printf("  mean:        %12.2f\n", h.Mean())
@@ -47,9 +47,9 @@ func Log(r Registry, d time.Duration, l *log.Logger) {
 				l.Printf("  mean rate:   %12.2f\n", metric.RateMean())
 			case Timer:
 				t := metric.Snapshot()
-				ps := t.Percentiles([]float64{0.5, 0.75, 0.95, 0.99, 0.999})
+				ps := t.Percentiles()
 				l.Printf("timer %s\n", name)
-				l.Printf("  count:       %9d\n", t.Count())
+				l.Printf("  count:       %9d\n", metric.Count())
 				l.Printf("  min:         %9d\n", t.Min())
 				l.Printf("  max:         %9d\n", t.Max())
 				l.Printf("  mean:        %12.2f\n", t.Mean())

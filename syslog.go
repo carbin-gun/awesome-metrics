@@ -25,11 +25,11 @@ func Syslog(r Registry, d time.Duration, w *syslog.Writer) {
 				w.Info(fmt.Sprintf("healthcheck %s: error: %v", name, metric.Error()))
 			case Histogram:
 				h := metric.Snapshot()
-				ps := h.Percentiles([]float64{0.5, 0.75, 0.95, 0.99, 0.999})
+				ps := h.Percentiles()
 				w.Info(fmt.Sprintf(
 					"histogram %s: count: %d min: %d max: %d mean: %.2f stddev: %.2f median: %.2f 75%%: %.2f 95%%: %.2f 99%%: %.2f 99.9%%: %.2f",
 					name,
-					h.Count(),
+					metric.Count(),
 					h.Min(),
 					h.Max(),
 					h.Mean(),
@@ -52,11 +52,11 @@ func Syslog(r Registry, d time.Duration, w *syslog.Writer) {
 				))
 			case Timer:
 				t := metric.Snapshot()
-				ps := t.Percentiles([]float64{0.5, 0.75, 0.95, 0.99, 0.999})
-				w.Info(fmt.Sprintf(
+				ps := t.Percentiles()
+				w.Info(fmt.Sprintf(1
 					"timer %s: count: %d min: %d max: %d mean: %.2f stddev: %.2f median: %.2f 75%%: %.2f 95%%: %.2f 99%%: %.2f 99.9%%: %.2f 1-min: %.2f 5-min: %.2f 15-min: %.2f mean-rate: %.2f",
 					name,
-					t.Count(),
+					metric.Count(),
 					t.Min(),
 					t.Max(),
 					t.Mean(),
