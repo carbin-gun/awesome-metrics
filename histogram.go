@@ -11,7 +11,7 @@ type Histogram interface {
 	Min() int64
 	Percentile(float64) float64
 	Percentiles([]float64) []float64
-	Sample() Sample
+	Reservoir() Reservoir
 	Snapshot() Histogram
 	StdDev() float64
 	Sum() int64
@@ -21,7 +21,7 @@ type Histogram interface {
 
 // GetOrRegisterHistogram returns an existing Histogram or constructs and
 // registers a new StandardHistogram.
-func GetOrRegisterHistogram(name string, r Registry, s Sample) Histogram {
+func GetOrRegisterHistogram(name string, r Registry, s Reservoir) Histogram {
 	if nil == r {
 		r = DefaultRegistry
 	}
@@ -29,17 +29,17 @@ func GetOrRegisterHistogram(name string, r Registry, s Sample) Histogram {
 }
 
 // NewHistogram constructs a new StandardHistogram from a Sample.
-func NewHistogram(s Sample) Histogram {
+func NewHistogram(r Reservoir) Histogram {
 	if UseNilMetrics {
 		return NilHistogram{}
 	}
-	return &StandardHistogram{sample: s}
+	return &StandardHistogram{reservoir: r}
 }
 
 // NewRegisteredHistogram constructs and registers a new StandardHistogram from
 // a Sample.
-func NewRegisteredHistogram(name string, r Registry, s Sample) Histogram {
-	c := NewHistogram(s)
+func NewRegisteredHistogram(name string, r Registry, r Reservoir) Histogram {
+	c := NewHistogram(r)
 	if nil == r {
 		r = DefaultRegistry
 	}
@@ -49,7 +49,7 @@ func NewRegisteredHistogram(name string, r Registry, s Sample) Histogram {
 
 // HistogramSnapshot is a read-only copy of another Histogram.
 type HistogramSnapshot struct {
-	sample *SampleSnapshot
+	sample Snapshot
 }
 
 // Clear panics.
@@ -57,26 +57,23 @@ func (*HistogramSnapshot) Clear() {
 	panic("Clear called on a HistogramSnapshot")
 }
 
-// Count returns the number of samples recorded at the time the snapshot was
-// taken.
-func (h *HistogramSnapshot) Count() int64 { return h.sample.Count() }
 
 // Max returns the maximum value in the sample at the time the snapshot was
 // taken.
-func (h *HistogramSnapshot) Max() int64 { return h.sample.Max() }
+func (h *HistogramSnapshot) Max() int64 { return h.sample.GetMax() }
 
 // Mean returns the mean of the values in the sample at the time the snapshot
 // was taken.
-func (h *HistogramSnapshot) Mean() float64 { return h.sample.Mean() }
+func (h *HistogramSnapshot) Mean() float64 { return h.sample.GetMean() }
 
 // Min returns the minimum value in the sample at the time the snapshot was
 // taken.
-func (h *HistogramSnapshot) Min() int64 { return h.sample.Min() }
+func (h *HistogramSnapshot) Min() int64 { return h.sample.GetMin() }
 
 // Percentile returns an arbitrary percentile of values in the sample at the
 // time the snapshot was taken.
 func (h *HistogramSnapshot) Percentile(p float64) float64 {
-	return h.sample.Percentile(p)
+	return h.sample.
 }
 
 // Percentiles returns a slice of arbitrary percentiles of values in the sample
@@ -85,26 +82,19 @@ func (h *HistogramSnapshot) Percentiles(ps []float64) []float64 {
 	return h.sample.Percentiles(ps)
 }
 
-// Sample returns the Sample underlying the histogram.
-func (h *HistogramSnapshot) Sample() Sample { return h.sample }
-
 // Snapshot returns the snapshot.
 func (h *HistogramSnapshot) Snapshot() Histogram { return h }
 
 // StdDev returns the standard deviation of the values in the sample at the
 // time the snapshot was taken.
-func (h *HistogramSnapshot) StdDev() float64 { return h.sample.StdDev() }
+func (h *HistogramSnapshot) StdDev() float64 { return h.sample.GetStdDev() }
 
-// Sum returns the sum in the sample at the time the snapshot was taken.
-func (h *HistogramSnapshot) Sum() int64 { return h.sample.Sum() }
 
 // Update panics.
 func (*HistogramSnapshot) Update(int64) {
 	panic("Update called on a HistogramSnapshot")
 }
 
-// Variance returns the variance of inputs at the time the snapshot was taken.
-func (h *HistogramSnapshot) Variance() float64 { return h.sample.Variance() }
 
 // NilHistogram is a no-op Histogram.
 type NilHistogram struct{}
@@ -153,12 +143,12 @@ func (NilHistogram) Variance() float64 { return 0.0 }
 // StandardHistogram is the standard implementation of a Histogram and uses a
 // Sample to bound its memory use.
 type StandardHistogram struct {
-	count  int64
-	sample Sample
+	count     int64
+	reservoir Reservoir
 }
 
 // Clear clears the histogram and its sample.
-func (h *StandardHistogram) Clear() { h.sample.Clear() }
+func (h *StandardHistogram) Clear() { h.reservoir. }
 
 // Count returns the number of samples recorded since the histogram was last
 // cleared.
