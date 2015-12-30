@@ -1,4 +1,4 @@
-package metrics
+package reporter
 
 import (
 	"bufio"
@@ -8,6 +8,9 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/carbin-gun/awesome-metrics/registry"
+	"github.com/carbin-gun/awesome-metrics/mechanism"
 )
 
 var shortHostName string = ""
@@ -15,17 +18,17 @@ var shortHostName string = ""
 // OpenTSDBConfig provides a container with configuration parameters for
 // the OpenTSDB exporter
 type OpenTSDBConfig struct {
-	Addr          *net.TCPAddr  // Network address to connect to
-	Registry      Registry      // Registry to be exported
-	FlushInterval time.Duration // Flush interval
-	DurationUnit  time.Duration // Time conversion unit for durations
-	Prefix        string        // Prefix to be prepended to metric names
+	Addr          *net.TCPAddr      // Network address to connect to
+	Registry      registry.Registry // Registry to be exported
+	FlushInterval time.Duration     // Flush interval
+	DurationUnit  time.Duration     // Time conversion unit for durations
+	Prefix        string            // Prefix to be prepended to metric names
 }
 
 // OpenTSDB is a blocking exporter function which reports metrics in r
 // to a TSDB server located at addr, flushing them every d duration
 // and prepending metric names with prefix.
-func OpenTSDB(r Registry, d time.Duration, prefix string, addr *net.TCPAddr) {
+func OpenTSDB(r registry.Registry, d time.Duration, prefix string, addr *net.TCPAddr) {
 	OpenTSDBWithConfig(OpenTSDBConfig{
 		Addr:          addr,
 		Registry:      r,
@@ -69,44 +72,42 @@ func openTSDB(c *OpenTSDBConfig) error {
 	w := bufio.NewWriter(conn)
 	c.Registry.Each(func(name string, i interface{}) {
 		switch metric := i.(type) {
-		case Counter:
+		case mechanism.Counter:
 			fmt.Fprintf(w, "put %s.%s.count %d %d host=%s\n", c.Prefix, name, now, metric.Count(), shortHostname)
-		case Gauge:
+		case mechanism.Gauge:
 			fmt.Fprintf(w, "put %s.%s.value %d %d host=%s\n", c.Prefix, name, now, metric.Value(), shortHostname)
-		case GaugeFloat64:
+		case mechanism.Gauge64:
 			fmt.Fprintf(w, "put %s.%s.value %d %f host=%s\n", c.Prefix, name, now, metric.Value(), shortHostname)
-		case Histogram:
+		case mechanism.Histogram:
 			h := metric.Snapshot()
-			ps := h.Percentiles()
 			fmt.Fprintf(w, "put %s.%s.count %d %d host=%s\n", c.Prefix, name, now, metric.Count(), shortHostname)
 			fmt.Fprintf(w, "put %s.%s.min %d %d host=%s\n", c.Prefix, name, now, h.Min(), shortHostname)
 			fmt.Fprintf(w, "put %s.%s.max %d %d host=%s\n", c.Prefix, name, now, h.Max(), shortHostname)
 			fmt.Fprintf(w, "put %s.%s.mean %d %.2f host=%s\n", c.Prefix, name, now, h.Mean(), shortHostname)
 			fmt.Fprintf(w, "put %s.%s.std-dev %d %.2f host=%s\n", c.Prefix, name, now, h.StdDev(), shortHostname)
-			fmt.Fprintf(w, "put %s.%s.50-percentile %d %.2f host=%s\n", c.Prefix, name, now, ps[0], shortHostname)
-			fmt.Fprintf(w, "put %s.%s.75-percentile %d %.2f host=%s\n", c.Prefix, name, now, ps[1], shortHostname)
-			fmt.Fprintf(w, "put %s.%s.95-percentile %d %.2f host=%s\n", c.Prefix, name, now, ps[2], shortHostname)
-			fmt.Fprintf(w, "put %s.%s.99-percentile %d %.2f host=%s\n", c.Prefix, name, now, ps[3], shortHostname)
-			fmt.Fprintf(w, "put %s.%s.999-percentile %d %.2f host=%s\n", c.Prefix, name, now, ps[4], shortHostname)
-		case Meter:
+			fmt.Fprintf(w, "put %s.%s.50-percentile %d %.2f host=%s\n", c.Prefix, name, now, h.Median(), shortHostname)
+			fmt.Fprintf(w, "put %s.%s.75-percentile %d %.2f host=%s\n", c.Prefix, name, now, h.Get75thPercentile(), shortHostname)
+			fmt.Fprintf(w, "put %s.%s.95-percentile %d %.2f host=%s\n", c.Prefix, name, now, h.Get95thPercentile(), shortHostname)
+			fmt.Fprintf(w, "put %s.%s.99-percentile %d %.2f host=%s\n", c.Prefix, name, now, h.Get99thPercentile(), shortHostname)
+			fmt.Fprintf(w, "put %s.%s.999-percentile %d %.2f host=%s\n", c.Prefix, name, now, h.Get999thPercentile()), shortHostname)
+		case mechanism.Meter:
 			fmt.Fprintf(w, "put %s.%s.count %d %d host=%s\n", c.Prefix, name, now, metric.Count(), shortHostname)
 			fmt.Fprintf(w, "put %s.%s.one-minute %d %.2f host=%s\n", c.Prefix, name, now, metric.Rate1(), shortHostname)
 			fmt.Fprintf(w, "put %s.%s.five-minute %d %.2f host=%s\n", c.Prefix, name, now, metric.Rate5(), shortHostname)
 			fmt.Fprintf(w, "put %s.%s.fifteen-minute %d %.2f host=%s\n", c.Prefix, name, now, metric.Rate15(), shortHostname)
 			fmt.Fprintf(w, "put %s.%s.mean %d %.2f host=%s\n", c.Prefix, name, now, metric.RateMean(), shortHostname)
-		case Timer:
+		case mechanism.Timer:
 			t := metric.Snapshot()
-			ps := t.Percentiles()
 			fmt.Fprintf(w, "put %s.%s.count %d %d host=%s\n", c.Prefix, name, now, metric.Count(), shortHostname)
 			fmt.Fprintf(w, "put %s.%s.min %d %d host=%s\n", c.Prefix, name, now, t.Min()/int64(du), shortHostname)
 			fmt.Fprintf(w, "put %s.%s.max %d %d host=%s\n", c.Prefix, name, now, t.Max()/int64(du), shortHostname)
 			fmt.Fprintf(w, "put %s.%s.mean %d %.2f host=%s\n", c.Prefix, name, now, t.Mean()/du, shortHostname)
 			fmt.Fprintf(w, "put %s.%s.std-dev %d %.2f host=%s\n", c.Prefix, name, now, t.StdDev()/du, shortHostname)
-			fmt.Fprintf(w, "put %s.%s.50-percentile %d %.2f host=%s\n", c.Prefix, name, now, ps[0]/du, shortHostname)
-			fmt.Fprintf(w, "put %s.%s.75-percentile %d %.2f host=%s\n", c.Prefix, name, now, ps[1]/du, shortHostname)
-			fmt.Fprintf(w, "put %s.%s.95-percentile %d %.2f host=%s\n", c.Prefix, name, now, ps[2]/du, shortHostname)
-			fmt.Fprintf(w, "put %s.%s.99-percentile %d %.2f host=%s\n", c.Prefix, name, now, ps[3]/du, shortHostname)
-			fmt.Fprintf(w, "put %s.%s.999-percentile %d %.2f host=%s\n", c.Prefix, name, now, ps[4]/du, shortHostname)
+			fmt.Fprintf(w, "put %s.%s.50-percentile %d %.2f host=%s\n", c.Prefix, name, now, t.Median()/du, shortHostname)
+			fmt.Fprintf(w, "put %s.%s.75-percentile %d %.2f host=%s\n", c.Prefix, name, now, t.Get75thPercentile()/du, shortHostname)
+			fmt.Fprintf(w, "put %s.%s.95-percentile %d %.2f host=%s\n", c.Prefix, name, now, t.Get95thPercentile()/du, shortHostname)
+			fmt.Fprintf(w, "put %s.%s.99-percentile %d %.2f host=%s\n", c.Prefix, name, now, t.Get99thPercentile()/du, shortHostname)
+			fmt.Fprintf(w, "put %s.%s.999-percentile %d %.2f host=%s\n", c.Prefix, name, now, t.Get999thPercentile()/du, shortHostname)
 			fmt.Fprintf(w, "put %s.%s.one-minute %d %.2f host=%s\n", c.Prefix, name, now, metric.Rate1(), shortHostname)
 			fmt.Fprintf(w, "put %s.%s.five-minute %d %.2f host=%s\n", c.Prefix, name, now, metric.Rate5(), shortHostname)
 			fmt.Fprintf(w, "put %s.%s.fifteen-minute %d %.2f host=%s\n", c.Prefix, name, now, metric.Rate15(), shortHostname)

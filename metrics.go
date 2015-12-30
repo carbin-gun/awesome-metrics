@@ -1,13 +1,26 @@
-// Go port of Coda Hale's Metrics library
-//
-// <https://github.com/rcrowley/go-metrics>
-//
-// Coda Hale's original work: <https://github.com/codahale/metrics>
 package metrics
 
-// UseNilMetrics is checked by the constructor functions for all of the
-// standard metrics.  If it is true, the metric returned is a stub.
-//
-// This global kill-switch helps quantify the observer effect and makes
-// for less cluttered pprof profiles.
-var UseNilMetrics bool = false
+import (
+	"github.com/carbin-gun/awesome-metrics/mechanism"
+	"github.com/carbin-gun/awesome-metrics/registry"
+)
+
+//helper file.all the functions can be done within the  packages in this repo
+
+var (
+	DEFAULT_REGISTRY = NewRegistry()
+)
+
+func NewRegistry() registry.Registry {
+	return registry.NewRegistry()
+}
+
+func Timer() mechanism.Timer {
+
+}
+func Counter() mechanism.Counter {
+
+}
+func Meter() mechanism.Meter {
+
+}

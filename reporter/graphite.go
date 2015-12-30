@@ -1,26 +1,26 @@
 package reporter
 import (
 "net"
-"github.com/carbin-gun/awesome-metrics"
 	"time"
 	"bufio"
 	"fmt"
-	"strings"
-	"strconv"
 	"log"
+	"github.com/carbin-gun/awesome-metrics/output"
+	"github.com/carbin-gun/awesome-metrics/mechanism"
+	"github.com/carbin-gun/awesome-metrics/registry"
 )
 
 
-type Reporter struct{
+type GraphiteReporter struct{
 	Addr          *net.TCPAddr     // TCP Address of server
-	Registry      metrics.Registry // data collector
+	Registry      registry.Registry // data collector
 	FlushInterval time.Duration    //data will flush from Registry to server address
 	DurationUnit  time.Duration    // Time unit of flush interval
 	Percentiles   []float64        // Percentiles to report from timers and histograms
 }
 
 //Report report data to server according to the FlushInterval
-func (r *Reporter) Report() {
+func (r *GraphiteReporter) Report() {
 	for _ = range time.Tick(r.FlushInterval) {
 		if err:=r.ReportOnce();nil!=err {
 			log.Println("report error:",err)
@@ -29,7 +29,7 @@ func (r *Reporter) Report() {
 }
 
 //compute the report key universal prefix according to the registry if the registry with a prefix setting
-func computeReportPrefix(registry metrics.Registry) string{
+func computeReportPrefix(registry registry.Registry) string{
 	registryPrefix := registry.Prefix()
 	var keyPrefix string
 	if registryPrefix!="" {
@@ -37,8 +37,22 @@ func computeReportPrefix(registry metrics.Registry) string{
 	}
 	return keyPrefix
 }
+
+func outputPercentiles(w *bufio.Writer ,prefix string,name string,snapshot output.Snapshot,currentTime time.Time) {
+	p75:=snapshot.Get75thPercentile()
+	p95:=snapshot.Get95thPercentile()
+	p98:=snapshot.Get98thPercentile()
+	p99:=snapshot.Get99thPercentile()
+	p999:=snapshot.Get999thPercentile()
+	fmt.Fprintf(w, "%s%s.75-percentile %.2f %d\n", prefix, name, p75, currentTime)
+	fmt.Fprintf(w, "%s%s.95-percentile %.2f %d\n", prefix, name, p95, currentTime)
+	fmt.Fprintf(w, "%s%s.98-percentile %.2f %d\n", prefix, name, p98, currentTime)
+	fmt.Fprintf(w, "%s%s.99-percentile %.2f %d\n", prefix, name, p99, currentTime)
+	fmt.Fprintf(w, "%s%s.999-percentile %.2f %d\n", prefix, name, p999, currentTime)
+}
+
 //Report report data to server instantly
-func (r *Reporter) ReportOnce() error{
+func (r *GraphiteReporter) ReportOnce() error{
 	conn, err := net.DialTCP("tcp", nil, r.Addr)
 	if nil != err {
 		return err
@@ -50,42 +64,34 @@ func (r *Reporter) ReportOnce() error{
 	keyPrefix:= computeReportPrefix(r.Registry)
 	r.Registry.Each(func(name string, i interface{}) {
 		switch metric := i.(type) {
-		case metrics.Counter:
+		case mechanism.Counter:
 			fmt.Fprintf(w, "%s%s.count %d %d\n", keyPrefix, name, metric.Count(), now)
-		case metrics.Gauge:
+		case mechanism.Gauge:
 			fmt.Fprintf(w, "%s%s.value %d %d\n", keyPrefix, name, metric.Value(), now)
-		case metrics.GaugeFloat64:
+		case mechanism.Gauge64:
 			fmt.Fprintf(w, "%s%s.value %f %d\n", keyPrefix, name, metric.Value(), now)
-		case metrics.Histogram:
+		case mechanism.Histogram:
 			h := metric.Snapshot()
-			ps := h.Percentiles(r.Percentiles)
-			fmt.Fprintf(w, "%s%s.count %d %d\n", keyPrefix, name, h.Count(), now)
+			fmt.Fprintf(w, "%s%s.count %d %d\n", keyPrefix, name, metric.Count(), now)
 			fmt.Fprintf(w, "%s%s.min %d %d\n", keyPrefix, name, h.Min(), now)
 			fmt.Fprintf(w, "%s%s.max %d %d\n", keyPrefix, name, h.Max(), now)
 			fmt.Fprintf(w, "%s%s.mean %.2f %d\n", keyPrefix, name, h.Mean(), now)
 			fmt.Fprintf(w, "%s%s.std-dev %.2f %d\n", keyPrefix, name, h.StdDev(), now)
-			for psIdx, psKey := range r.Percentiles {
-				key := strings.Replace(strconv.FormatFloat(psKey*100.0, 'f', -1, 64), ".", "", 1)
-				fmt.Fprintf(w, "%s%s.%s-percentile %.2f %d\n", keyPrefix, name, key, ps[psIdx], now)
-			}
-		case metrics.Meter:
+			outputPercentiles(w,keyPrefix,name,h,now)
+		case mechanism.Meter:
 			fmt.Fprintf(w, "%s%s.count %d %d\n", keyPrefix, name, metric.Count(), now)
 			fmt.Fprintf(w, "%s%s.one-minute %.2f %d\n", keyPrefix, name, metric.Rate1(), now)
 			fmt.Fprintf(w, "%s%s.five-minute %.2f %d\n", keyPrefix, name, metric.Rate5(), now)
 			fmt.Fprintf(w, "%s%s.fifteen-minute %.2f %d\n", keyPrefix, name, metric.Rate15(), now)
 			fmt.Fprintf(w, "%s%s.mean %.2f %d\n", keyPrefix, name, metric.RateMean(), now)
-		case metrics.Timer:
+		case mechanism.Timer:
 			t := metric.Snapshot()
-			ps := t.Percentiles(r.Percentiles)
 			fmt.Fprintf(w, "%s%s.count %d %d\n", keyPrefix, name, metric.Count(), now)
 			fmt.Fprintf(w, "%s%s.min %d %d\n", keyPrefix, name, t.Min()/int64(du), now)
 			fmt.Fprintf(w, "%s%s.max %d %d\n", keyPrefix, name, t.Max()/int64(du), now)
 			fmt.Fprintf(w, "%s%s.mean %.2f %d\n", keyPrefix, name, t.Mean()/du, now)
 			fmt.Fprintf(w, "%s%s.std-dev %.2f %d\n", keyPrefix, name, t.StdDev()/du, now)
-			for psIdx, psKey := range r.Percentiles {
-				key := strings.Replace(strconv.FormatFloat(psKey*100.0, 'f', -1, 64), ".", "", 1)
-				fmt.Fprintf(w, "%s%s.%s-percentile %.2f %d\n", keyPrefix, name, key, ps[psIdx]/du, now)
-			}
+			outputPercentiles(w,keyPrefix,name,h,now)
 			fmt.Fprintf(w, "%s%s.one-minute %.2f %d\n", keyPrefix, name, metric.Rate1(), now)
 			fmt.Fprintf(w, "%s%s.five-minute %.2f %d\n", keyPrefix, name, metric.Rate5(), now)
 			fmt.Fprintf(w, "%s%s.fifteen-minute %.2f %d\n", keyPrefix, name, metric.Rate15(), now)

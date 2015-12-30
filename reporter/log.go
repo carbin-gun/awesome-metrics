@@ -1,17 +1,20 @@
-package metrics
+package reporter
 
 import (
 	"log"
 	"time"
+
+	"github.com/carbin-gun/awesome-metrics/mechanism"
+	"github.com/carbin-gun/awesome-metrics/registry"
 )
 
 // Output each metric in the given registry periodically using the given
 // logger.
-func Log(r Registry, d time.Duration, l *log.Logger) {
+func Log(r registry.Registry, d time.Duration, l *log.Logger) {
 	for _ = range time.Tick(d) {
 		r.Each(func(name string, i interface{}) {
 			switch metric := i.(type) {
-			case Counter:
+			case mechanism.Counter:
 				l.Printf("counter %s\n", name)
 				l.Printf("  count:       %9d\n", metric.Count())
 			case Gauge:

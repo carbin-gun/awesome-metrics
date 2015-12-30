@@ -1,9 +1,11 @@
-package metrics
+package registry
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 
+	"github.com/carbin-gun/awesome-metrics/mechanism"
 	"github.com/fanliao/go-concurrentMap"
 )
 
@@ -16,7 +18,7 @@ func (err MetricError) Error() string {
 	return fmt.Sprintf(" metric error: %s", string(err))
 }
 
-// A Registry holds references to a set of metrics by name and can iterate
+// A Registry holds references to a set of metrics 1by name and can iterate
 // over them, calling callback functions provided by the user.
 //
 // This is an interface so as to encourage other structs to implement
@@ -47,6 +49,8 @@ type Registry interface {
 	UnregisterAll()
 	//get the universal prefix of all the metrics
 	Prefix() string
+	//MarshalJson output json
+	MarshalJson() ([]byte, error)
 }
 
 type StandardRegistry struct {
@@ -99,21 +103,6 @@ func (r *StandardRegistry) Register(name string, i interface{}) error {
 	return r.register(name, i)
 }
 
-// Run all registered healthchecks.
-func (r *StandardRegistry) RunHealthChecks() {
-	itr := r.metrics.Iterator()
-	for {
-		_, v, ok := itr.Next()
-		if !ok {
-			break
-		}
-		if h, ok := v.(Healthcheck); ok {
-			h.Check()
-		}
-	}
-
-}
-
 // Unregister the metric with the given name.
 func (r *StandardRegistry) Unregister(name string) {
 	r.metrics.Remove(name)
@@ -137,7 +126,7 @@ func (r *StandardRegistry) register(name string, i interface{}) error {
 		return MetricError("register error for name:" + name)
 	}
 	switch i.(type) {
-	case Counter, Gauge, GaugeFloat64, Healthcheck, Histogram, Meter, Timer:
+	case mechanism.Counter, mechanism.Gauge, mechanism.Gauge64, mechanism.Histogram, mechanism.Meter, mechanism.Timer:
 		r.metrics.Put(name, i)
 	}
 	return nil
@@ -150,6 +139,56 @@ func (r *StandardRegistry) registered() map[string]interface{} {
 		metrics[keyString] = entry.Value()
 	}
 	return metrics
+}
+func (r *StandardRegistry) MarshalJSON() ([]byte, error) {
+	data := make(map[string]map[string]interface{})
+	r.Each(func(name string, i interface{}) {
+		values := make(map[string]interface{})
+		switch metric := i.(type) {
+		case mechanism.Counter:
+			values["count"] = metric.Count()
+		case mechanism.Gauge:
+			values["value"] = metric.Value()
+		case mechanism.Gauge64:
+			values["value"] = metric.Value()
+		case mechanism.Histogram:
+			h := metric.Snapshot()
+			values["count"] = metric.Count()
+			values["min"] = h.Min()
+			values["max"] = h.Max()
+			values["mean"] = h.Mean()
+			values["stddev"] = h.StdDev()
+			values["median"] = h.Median()
+			values["75%"] = h.Get75thPercentile()
+			values["95%"] = h.Get95thPercentile()
+			values["99%"] = h.Get99thPercentile()
+			values["99.9%"] = h.Get999thPercentile()
+		case mechanism.Meter:
+			values["count"] = metric.Count()
+			values["1m.rate"] = metric.Rate1()
+			values["5m.rate"] = metric.Rate5()
+			values["15m.rate"] = metric.Rate15()
+			values["mean.rate"] = metric.RateMean()
+		case mechanism.Timer:
+			t := metric.Snapshot()
+			values["count"] = metric.Count()
+			values["min"] = t.Min()
+			values["max"] = t.Max()
+			values["mean"] = t.Mean()
+			values["stddev"] = t.StdDev()
+			values["median"] = h.Median()
+			values["75%"] = h.Get75thPercentile()
+			values["95%"] = h.Get95thPercentile()
+			values["99%"] = h.Get99thPercentile()
+			values["99.9%"] = h.Get999thPercentile()
+			values["1m.rate"] = metric.Rate1()
+			values["5m.rate"] = metric.Rate5()
+			values["15m.rate"] = metric.Rate15()
+			values["mean.rate"] = metric.RateMean()
+		}
+		data[name] = values
+	})
+	return json.Marshal(data)
 }
 
 var DefaultRegistry = NewRegistry()
