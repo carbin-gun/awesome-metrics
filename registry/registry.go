@@ -2,54 +2,22 @@ package registry
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
+
+	"errors"
 
 	"github.com/carbin-gun/awesome-metrics/mechanism"
 	"github.com/fanliao/go-concurrentMap"
 )
 
-// DuplicateMetric is the error returned by Registry.Register when a metric
-// already exists.  If you mean to Register that metric you must first
-// Unregister the existing metric.
-type MetricError string
-
-func (err MetricError) Error() string {
-	return fmt.Sprintf(" metric error: %s", string(err))
-}
-
-// A Registry holds references to a set of metrics 1by name and can iterate
-// over them, calling callback functions provided by the user.
-//
-// This is an interface so as to encourage other structs to implement
-// the Registry API as appropriate.
 type Registry interface {
-
-	// Call the given function for each registered metric.
 	Each(func(string, interface{}))
-
-	// Get the metric by the given name or nil if none is registered.
 	Get(string) interface{}
-
-	// Gets an existing metric or registers the given one.
-	// The interface can be the metric to register if not found in registry,
-	// or a function returning the metric for lazy instantiation.
 	GetOrRegister(string, interface{}) interface{}
-
-	// Register the given metric under the given name.
 	Register(string, interface{}) error
-
-	// Run all registered healthchecks.
-	RunHealthChecks()
-
-	// Unregister the metric with the given name.
 	Unregister(string)
-
-	// Unregister all metrics.  (Mostly for testing.)
 	UnregisterAll()
-	//get the universal prefix of all the metrics
 	Prefix() string
-	//MarshalJson output json
 	MarshalJson() ([]byte, error)
 }
 
@@ -81,10 +49,7 @@ func (r *StandardRegistry) Get(name string) interface{} {
 	return val
 }
 
-// Gets an existing metric or creates and registers a new one. Threadsafe
-// alternative to calling Get and Register on failure.
-// The interface can be the metric to register if not found in registry,
-// or a function returning the metric for lazy instantiation.
+// put if absent.
 func (r *StandardRegistry) GetOrRegister(name string, i interface{}) interface{} {
 	val := r.Get(name)
 	if val != nil {
@@ -123,11 +88,11 @@ func (r *StandardRegistry) Prefix() string {
 
 func (r *StandardRegistry) register(name string, i interface{}) error {
 	if val, err := r.metrics.Get(name); err != nil || val != nil {
-		return MetricError("register error for name:" + name)
+		return errors.New("register error for name:" + name)
 	}
 	switch i.(type) {
 	case mechanism.Counter, mechanism.Gauge, mechanism.Gauge64, mechanism.Histogram, mechanism.Meter, mechanism.Timer:
-		r.metrics.Put(name, i)
+		r.metrics.PutIfAbsent(name, i)
 	}
 	return nil
 }
@@ -190,5 +155,3 @@ func (r *StandardRegistry) MarshalJSON() ([]byte, error) {
 	})
 	return json.Marshal(data)
 }
-
-var DefaultRegistry = NewRegistry()

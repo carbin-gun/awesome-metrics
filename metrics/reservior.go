@@ -10,7 +10,11 @@ import (
 	"github.com/mtchavez/skiplist"
 )
 
-const rescaleThreshold = time.Hour
+const (
+	RescaleThreshold       = time.Hour
+	DEFAULT_RESERVOIR_SIZE = 1028
+	DEFAULT_ALPHA          = 0.015
+)
 
 type Reservoir interface {
 	Size() int64
@@ -33,7 +37,7 @@ func NewExpDecayReservoir(reservoirSize int64, alpha float64) Reservoir {
 		t0:            time.Now(),
 		values:        &WeightedSampleStorage{store: skiplist.NewList()},
 	}
-	r.t1 = r.t0.Add(rescaleThreshold)
+	r.t1 = r.t0.Add(RescaleThreshold)
 	return r
 }
 
@@ -76,7 +80,7 @@ func (r *ExpDecayReservoir) rescaleIfNeeded(t time.Time) {
 		t0 := r.t0
 		r.values.Clear()
 		r.t0 = t
-		r.t1 = r.t0.Add(rescaleThreshold)
+		r.t1 = r.t0.Add(RescaleThreshold)
 		iterator := r.values.Iterator()
 		if iterator.Next() {
 			key := iterator.Key()

@@ -13,8 +13,8 @@ type StandardTimer struct {
 //NewTimer return the default timer
 func NewTimer() mechanism.Timer {
 	return &StandardTimer{
-		histogram: nil,
-		meter:     nil,
+		histogram: NewHistogram(NewExpDecayReservoir(DEFAULT_RESERVOIR_SIZE, DEFAULT_ALPHA)),
+		meter:     NewMeter(),
 	}
 }
 

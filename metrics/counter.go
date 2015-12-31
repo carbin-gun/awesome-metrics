@@ -1,9 +1,17 @@
 package metrics
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+
+	"github.com/carbin-gun/awesome-metrics/mechanism"
+)
 
 type StandardCounter struct {
 	count int64
+}
+
+func NewCounter() mechanism.Counter {
+	return &StandardCounter{count: 0}
 }
 
 //implement the Counter interface
