@@ -105,7 +105,7 @@ func (r *StandardRegistry) registered() map[string]interface{} {
 	}
 	return metrics
 }
-func (r *StandardRegistry) MarshalJSON() ([]byte, error) {
+func (r *StandardRegistry) MarshalJson() ([]byte, error) {
 	data := make(map[string]map[string]interface{})
 	r.Each(func(name string, i interface{}) {
 		values := make(map[string]interface{})
@@ -141,11 +141,11 @@ func (r *StandardRegistry) MarshalJSON() ([]byte, error) {
 			values["max"] = t.Max()
 			values["mean"] = t.Mean()
 			values["stddev"] = t.StdDev()
-			values["median"] = h.Median()
-			values["75%"] = h.Get75thPercentile()
-			values["95%"] = h.Get95thPercentile()
-			values["99%"] = h.Get99thPercentile()
-			values["99.9%"] = h.Get999thPercentile()
+			values["median"] = t.Median()
+			values["75%"] = t.Get75thPercentile()
+			values["95%"] = t.Get95thPercentile()
+			values["99%"] = t.Get99thPercentile()
+			values["99.9%"] = t.Get999thPercentile()
 			values["1m.rate"] = metric.Rate1()
 			values["5m.rate"] = metric.Rate5()
 			values["15m.rate"] = metric.Rate15()

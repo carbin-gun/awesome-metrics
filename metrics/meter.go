@@ -7,7 +7,7 @@ import (
 	"github.com/carbin-gun/awesome-metrics/mechanism"
 )
 
-const TickInterval int64 = 5 * time.Second
+const TickInterval int64 = 5e9 //5s
 
 type StandardMeter struct {
 	a1, a5, a15 mechanism.EWMA
@@ -22,7 +22,7 @@ func NewMeter() mechanism.Meter {
 		a5:        NewEWMA5(),
 		a15:       NewEWMA15(),
 		startTime: time.Now(),
-		lastTick:  time.Now().Nanosecond(),
+		lastTick:  int64(time.Now().Nanosecond()),
 	}
 }
 

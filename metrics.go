@@ -14,24 +14,24 @@ type RegistryWrapper struct {
 	Registry registry.Registry
 }
 
-func NewRegistry() RegistryWrapper {
+func NewRegistry() *RegistryWrapper {
 	return &RegistryWrapper{
 		Registry: registry.NewRegistry(),
 	}
 }
 
-func NewPrefixRegistry(prefix string) RegistryWrapper {
+func NewPrefixRegistry(prefix string) *RegistryWrapper {
 	return &RegistryWrapper{
 		Registry: registry.NewPrefixRegistry(prefix),
 	}
 }
 
 func (r *RegistryWrapper) Timer(name string) mechanism.Timer {
-	return r.Registry.GetOrRegister(name, metrics.NewTimer())
+	return r.Registry.GetOrRegister(name, metrics.NewTimer()).(mechanism.Timer)
 }
 func (r *RegistryWrapper) Counter(name string) mechanism.Counter {
-	return r.Registry.GetOrRegister(name, metrics.NewCounter())
+	return r.Registry.GetOrRegister(name, metrics.NewCounter()).(mechanism.Counter)
 }
 func (r *RegistryWrapper) Meter(name string) mechanism.Meter {
-	return r.Registry.GetOrRegister(name, metrics.NewMeter())
+	return r.Registry.GetOrRegister(name, metrics.NewMeter()).(mechanism.Meter)
 }

@@ -2,12 +2,13 @@ package metrics
 
 import (
 	"math"
-	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/mtchavez/skiplist"
+	"math/rand"
+
+	"github.com/carbin-gun/skiplist"
 )
 
 const (
@@ -63,12 +64,12 @@ func (r *ExpDecayReservoir) UpdateBy(val int64, t time.Time) {
 	sample := WeightedSample{weight: weight, value: val}
 	priority := weight / rand.Float64()
 	if newCount <= r.reservoirSize {
-		r.values.Insert(priority, sample)
+		r.values.Insert(priority, sample.MarshalBytes())
 	} else {
 		k, _ := r.values.First()
-		if float64(k) < priority && r.values.Insert(priority, sample) != nil {
+		if float64(k) < priority && r.values.Insert(priority, sample.MarshalBytes()) != nil {
 			for r.values.Delete(k) {
-				k = r.values.First()
+				k, _ = r.values.First()
 			}
 		}
 	}
@@ -78,15 +79,16 @@ func (r *ExpDecayReservoir) rescaleIfNeeded(t time.Time) {
 		r.mutex.Lock()
 		defer r.mutex.Unlock()
 		t0 := r.t0
-		r.values.Clear()
 		r.t0 = t
+		scalingFactor := math.Exp(-r.alpha * (r.t0.Sub(t0).Seconds()))
 		r.t1 = r.t0.Add(RescaleThreshold)
 		iterator := r.values.Iterator()
 		if iterator.Next() {
 			key := iterator.Key()
-			val := iterator.Val()
-			newKey := key * math.Exp(-r.alpha*r.t0.Sub(t0).Seconds())
-			r.values.Insert(newKey, val)
+			r.values.Delete(key)
+			sample := UnMarshalFromBytes(iterator.Val())
+			newVal := WeightedSample{weight: sample.weight * scalingFactor, value: sample.value}
+			r.values.Insert(key*scalingFactor, newVal.MarshalBytes())
 		}
 	}
 }

@@ -1,13 +1,16 @@
 package metrics
 
-import "github.com/carbin-gun/awesome-metrics/output"
+import (
+	"github.com/carbin-gun/awesome-metrics/mechanism"
+	"github.com/carbin-gun/awesome-metrics/output"
+)
 
 type StandardHistogram struct {
 	count     int64
 	reservoir Reservoir
 }
 
-func NewHistogram(reservoir Reservoir) {
+func NewHistogram(reservoir Reservoir) mechanism.Histogram {
 	return &StandardHistogram{
 		count:     0,
 		reservoir: reservoir,
