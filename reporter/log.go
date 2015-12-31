@@ -17,51 +17,45 @@ func Log(r registry.Registry, d time.Duration, l *log.Logger) {
 			case mechanism.Counter:
 				l.Printf("counter %s\n", name)
 				l.Printf("  count:       %9d\n", metric.Count())
-			case Gauge:
+			case mechanism.Gauge:
 				l.Printf("gauge %s\n", name)
 				l.Printf("  value:       %9d\n", metric.Value())
-			case GaugeFloat64:
+			case mechanism.Gauge64:
 				l.Printf("gauge %s\n", name)
 				l.Printf("  value:       %f\n", metric.Value())
-			case Healthcheck:
-				metric.Check()
-				l.Printf("healthcheck %s\n", name)
-				l.Printf("  error:       %v\n", metric.Error())
-			case Histogram:
+			case mechanism.Histogram:
 				h := metric.Snapshot()
-				ps := h.Percentiles()
 				l.Printf("histogram %s\n", name)
 				l.Printf("  count:       %9d\n", metric.Count())
 				l.Printf("  min:         %9d\n", h.Min())
 				l.Printf("  max:         %9d\n", h.Max())
 				l.Printf("  mean:        %12.2f\n", h.Mean())
 				l.Printf("  stddev:      %12.2f\n", h.StdDev())
-				l.Printf("  median:      %12.2f\n", ps[0])
-				l.Printf("  75%%:         %12.2f\n", ps[1])
-				l.Printf("  95%%:         %12.2f\n", ps[2])
-				l.Printf("  99%%:         %12.2f\n", ps[3])
-				l.Printf("  99.9%%:       %12.2f\n", ps[4])
-			case Meter:
+				l.Printf("  median:      %12.2f\n", h.Median())
+				l.Printf("  75%%:         %12.2f\n", h.Get75thPercentile())
+				l.Printf("  95%%:         %12.2f\n", h.Get95thPercentile())
+				l.Printf("  99%%:         %12.2f\n", h.Get95thPercentile())
+				l.Printf("  99.9%%:       %12.2f\n", h.Get999thPercentile())
+			case mechanism.Meter:
 				l.Printf("meter %s\n", name)
 				l.Printf("  count:       %9d\n", metric.Count())
 				l.Printf("  1-min rate:  %12.2f\n", metric.Rate1())
 				l.Printf("  5-min rate:  %12.2f\n", metric.Rate5())
 				l.Printf("  15-min rate: %12.2f\n", metric.Rate15())
 				l.Printf("  mean rate:   %12.2f\n", metric.RateMean())
-			case Timer:
+			case mechanism.Timer:
 				t := metric.Snapshot()
-				ps := t.Percentiles()
 				l.Printf("timer %s\n", name)
 				l.Printf("  count:       %9d\n", metric.Count())
 				l.Printf("  min:         %9d\n", t.Min())
 				l.Printf("  max:         %9d\n", t.Max())
 				l.Printf("  mean:        %12.2f\n", t.Mean())
 				l.Printf("  stddev:      %12.2f\n", t.StdDev())
-				l.Printf("  median:      %12.2f\n", ps[0])
-				l.Printf("  75%%:         %12.2f\n", ps[1])
-				l.Printf("  95%%:         %12.2f\n", ps[2])
-				l.Printf("  99%%:         %12.2f\n", ps[3])
-				l.Printf("  99.9%%:       %12.2f\n", ps[4])
+				l.Printf("  median:      %12.2f\n", t.Median())
+				l.Printf("  75%%:         %12.2f\n", t.Get75thPercentile())
+				l.Printf("  95%%:         %12.2f\n", t.Get95thPercentile())
+				l.Printf("  99%%:         %12.2f\n", t.Get95thPercentile())
+				l.Printf("  99.9%%:       %12.2f\n", t.Get999thPercentile())
 				l.Printf("  1-min rate:  %12.2f\n", metric.Rate1())
 				l.Printf("  5-min rate:  %12.2f\n", metric.Rate5())
 				l.Printf("  15-min rate: %12.2f\n", metric.Rate15())
