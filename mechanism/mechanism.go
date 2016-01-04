@@ -1,6 +1,10 @@
 package mechanism
 
-import "github.com/carbin-gun/awesome-metrics/output"
+import (
+	"time"
+
+	"github.com/carbin-gun/awesome-metrics/output"
+)
 
 type Counter interface {
 	//Counting interface
@@ -38,6 +42,10 @@ type Timer interface {
 	RateMean() float64
 	//snapshot data about histogram
 	Snapshot() output.Snapshot
+
+	//communication
+	Time(func())
+	Update(duration time.Duration)
 }
 type Gauge interface {
 	//Gauged interface

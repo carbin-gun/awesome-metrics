@@ -28,20 +28,26 @@ func NewMeter() mechanism.Meter {
 
 //Metered interface
 func (meter *StandardMeter) Count() int64 {
-	return 0
+	return atomic.LoadInt64(&meter.count)
 }
 
 func (meter *StandardMeter) Rate1() float64 {
-	return 0.0
+	return meter.a1.Rate()
 }
 func (meter *StandardMeter) Rate5() float64 {
-	return 0.0
+	return meter.a5.Rate()
 }
 func (meter *StandardMeter) Rate15() float64 {
-	return 0.0
+	return meter.a15.Rate()
 }
 func (meter *StandardMeter) RateMean() float64 {
-	return 0.0
+	currentCount := atomic.LoadInt64(&meter.count)
+	if currentCount == 0 {
+		return 0.0
+	} else {
+		elapsed := time.Now().Sub(meter.startTime).Nanoseconds()
+		return float64(currentCount) / elapsed
+	}
 }
 
 //communication
@@ -50,6 +56,11 @@ func (meter *StandardMeter) Mark() {
 }
 func (meter *StandardMeter) mark(val int64) {
 	meter.tickIfNecessary()
+	atomic.AddInt64(&meter.count, val)
+	meter.a1.Update(val)
+	meter.a5.Update(val)
+	meter.a15.Update(val)
+
 }
 
 func (m *StandardMeter) tickIfNecessary() {

@@ -35,3 +35,6 @@ func (r *RegistryWrapper) Counter(name string) mechanism.Counter {
 func (r *RegistryWrapper) Meter(name string) mechanism.Meter {
 	return r.Registry.GetOrRegister(name, metrics.NewMeter()).(mechanism.Meter)
 }
+func (r *RegistryWrapper) Each(f func(string, interface{})) {
+	r.Registry.Each(f)
+}

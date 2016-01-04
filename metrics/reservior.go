@@ -8,6 +8,7 @@ import (
 
 	"math/rand"
 
+	"github.com/carbin-gun/awesome-metrics/output"
 	"github.com/carbin-gun/skiplist"
 )
 
@@ -20,6 +21,7 @@ const (
 type Reservoir interface {
 	Size() int64
 	Update(val int64)
+	Snapshot() output.Snapshot
 }
 
 type ExpDecayReservoir struct {
@@ -91,4 +93,30 @@ func (r *ExpDecayReservoir) rescaleIfNeeded(t time.Time) {
 			r.values.Insert(key*scalingFactor, newVal.MarshalBytes())
 		}
 	}
+}
+
+func (r *ExpDecayReservoir) Snapshot() output.Snapshot {
+
+}
+
+func (r *ExpDecayReservoir) duplicateVals() {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+	iterator := r.values.Iterator()
+	var samples []WeightedSample
+	if iterator.Next() {
+		value := UnMarshalFromBytes(iterator.Val())
+		samples = append(samples, value)
+	}
+	var sumWeight int64
+	values := make(int64, len(samples))
+	for i := 0; i < len(samples); i++ {
+		sumWeight += samples[i].weight
+	}
+	for i := 0; i < len(samples); i++ {
+		values = append(values,samples[i].value)
+	}
+
+
+
 }

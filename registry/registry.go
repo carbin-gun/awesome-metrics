@@ -6,6 +6,8 @@ import (
 
 	"errors"
 
+	"fmt"
+
 	"github.com/carbin-gun/awesome-metrics/mechanism"
 	"github.com/fanliao/go-concurrentMap"
 )
@@ -53,6 +55,7 @@ func (r *StandardRegistry) Get(name string) interface{} {
 func (r *StandardRegistry) GetOrRegister(name string, i interface{}) interface{} {
 	val := r.Get(name)
 	if val != nil {
+		fmt.Println("val existed for metric-name:", name)
 		return val
 	}
 	if v := reflect.ValueOf(i); v.Kind() == reflect.Func {
@@ -92,6 +95,7 @@ func (r *StandardRegistry) register(name string, i interface{}) error {
 	}
 	switch i.(type) {
 	case mechanism.Counter, mechanism.Gauge, mechanism.Gauge64, mechanism.Histogram, mechanism.Meter, mechanism.Timer:
+		fmt.Println("putIfAbsent metric,name:", name)
 		r.metrics.PutIfAbsent(name, i)
 	}
 	return nil
@@ -99,8 +103,10 @@ func (r *StandardRegistry) register(name string, i interface{}) error {
 
 func (r *StandardRegistry) registered() map[string]interface{} {
 	metrics := make(map[string]interface{}, r.metrics.Size())
-	for _, entry := range r.metrics.ToSlice() {
+	metricSlices := r.metrics.ToSlice()
+	for _, entry := range metricSlices {
 		keyString := entry.Key().(string)
+		fmt.Println("registered metrics:", metricSlices)
 		metrics[keyString] = entry.Value()
 	}
 	return metrics
